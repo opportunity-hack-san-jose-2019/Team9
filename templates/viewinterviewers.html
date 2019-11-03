@@ -1,0 +1,21 @@
+{% extends 'layout.html' %} {% block title %}Profile{% endblock %} {% block content %}
+<form action="{{ url_for('updateinterviewer') }}" method="post" autocomplete="off">
+  <table style="width:100%" border="5">
+    <tr>
+      <th>Delete</th>
+      <th>Interviewer ID</th>
+      <th>Interviewer Name</th>
+      <th>Email</th>
+    </tr>
+    {% for item in data %}
+    <tr>
+      <td><input type="checkbox" id="{{item}}" name="selectedStudent_{{item.P_ID}}" value="{{item.P_ID}}"></td>
+      <td>{{item.P_ID}}</td>
+      <td><div contenteditable >{{item.P_NAME}}</div></td>
+      <td><div contenteditable>{{item.P_EMAIL}}</div></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <input type="submit" value="Unenroll Interviewer">
+</form>
+{% endblock %}

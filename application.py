@@ -5,6 +5,7 @@ import configparser
 from dal import *
 import re
 from schedule import *
+import csv
 
 # setting up configurations and constants
 config = configparser.ConfigParser()
@@ -252,16 +253,83 @@ def newevent():
 		for interviewer_email in interviewers:
 			mailTrigger(interviewer_email[0], "SUBJECT: New Event Created \n \n\n Hello interviewer, {} has been created for {}, starting at {} and ending at {}"
 				.format(name, date, start_time, end_time))
+
+
+		# # uploading csv
+		# if 'attachment_1' in request.files:
+		# 	csvfile = request.files['attachment_1']
+		# 	reader = csv.DictReader(csvfile)
+		# 	data = [row for row in reader]
+		# 	for row in data:
+		# 		date_time_store = row['date_time']
+		# 	technician_store = row['technician']
+		# 	test_location_store = row['test_location']
+		# 	product_serial_number_store = row['product_serial_number']
+		# 	test_detail_store = row['test_detail']
+		# 	test_result_store = row['test_result']
+
+
+
+
 		return "Event Added"
 
 	return render_template('newevent.html')
 
 
+@application.route('/updateinterviewer', methods=['GET', 'POST'])
+def updateinterviewer():
+	print ("In update interviewer")
+	if request.method == 'POST':
+		print ("In post")
+		result = getQueryResult("SELECT P_ID FROM {}.PERSON WHERE P_TYPE = 2".format(instance_name))
+		for item in result:
+			if 'selectedStudent_{}'.format(item[0]) in request.form:
+				query = 'UPDATE {}.PERSON SET P_TYPE=10 WHERE P_ID = {}'.format(instance_name, item[0])
+				print ("Unenrolled student", item[0])
+				con = getConnection()
+				cur=con.cursor()
+				cur.execute(query)
+				con.commit()
+	return redirect(url_for('viewinterviewers'))
+
+@application.route("/viewinterviewers", methods=['GET'])
+def viewinterviewers():
+	if isAdmin():
+		try:
+			# con = getConnection()
+			# cursor = con.cursor()
+			query = "SELECT * from team9.PERSON WHERE P_TYPE = 2"
+			# result = cursor.execute("SELECT * from team9.STUDENT;")
+			result = getQueryResult(query)
+			print ("Result:", result)
+			all_students = list()
+			if result:
+				for student in result:
+					interviewer_details_query = "SELECT P_FNAME, P_LNAME, P_EMAIL FROM team9.PERSON WHERE P_ID = {}".format(student[0])
+					interviewer_details = getQueryResult(interviewer_details_query, fetchOne=True)
+					print ("SD:", interviewer_details)
+					new_student = {
+						'P_ID': student[0],
+						'P_NAME': interviewer_details[0] + " " + interviewer_details[1],
+						'P_EMAIL': interviewer_details[2],
+					}
+					all_students.append(new_student)
+				print ("Returning JSON")
+				return render_template('viewinterviewers.html', data=all_students)
+			else:
+				return jsonify('No data!'), 404
+		except Exception as err:
+			print(str(err))
+			return (None, 500)
+	else:
+		print ("---------")
+		return jsonify("",401)
+
 # scheduling
 
 @application.route('/generatematches', methods=['GET', 'POST'])
 def getMatches():
-	if request.method == 'POST':
+	if request.method == 'POST' or request.method == 'GET':
 		# eID = getSelectedEvent()
 		eID = 1
 		query = "SELECT E_START, E_END FROM {}.EVENT WHERE E_ID = {}".format(instance_name, eID)
@@ -270,10 +338,44 @@ def getMatches():
 		end_time = str(result[1]).split(":")
 		start_time = start_time[0] + start_time[1]
 		end_time = end_time[0] + end_time[1]
-		scheduleInterviewes(start_time, end_time, event_id=eID)
+		matches, eventID = scheduleInterviewes(start_time, end_time, event_id=eID)
+
+		for match in matches:
+			settMatch(match[0], match[1], match[2], match[3], eventID)
+
+
+	return "Matches done"
 
 
 
+
+
+# @upload_csv_blueprint.route('/upload_csv', methods=['GET','POST'])
+# def upload_file():
+# 	if request.method == 'POST':
+# 		csvfile = request.files['file']
+# 		reader = csv.DictReader(csvfile)
+# 		data = [row for row in reader]
+# 		for row in data:
+# 			date_time_store = row['date_time']
+# 			technician_store = row['technician']
+# 			test_location_store = row['test_location']
+# 			product_serial_number_store = row['product_serial_number']
+# 			test_detail_store = row['test_detail']
+# 			test_result_store = row['test_result']
+#
+# 			query = test_result(date_time = date_time_store,
+# 				technician_name = technician_store,
+# 				place_of_test = test_location_store,
+# 				serial_number=product_serial_number_store,
+# 				test_details=test_detail_store,
+# 				result=test_result_store)
+#
+# 			db.session.add(query)
+# 			db.session.commit()
+# 			return('Did it work?')
+# 		else:
+# 			return redirect(url_for('upload_csv.upload_csv_layout'))
 
 if __name__ == "__main__":
 	application.run()

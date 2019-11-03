@@ -75,6 +75,12 @@ def getInterestsList():
   interests = [interest[0] for interest in result]
   return interests
 
+def settMatch(i_id, s_id, start_time, end_time, event_id):
+  con = getConnection()
+  cur=con.cursor()
+  cur.execute("INSERT INTO {}.MATCHES VALUES ({}, {}, {}, STR_TO_DATE('{}', '%H%i'), STR_TO_DATE('{}', '%H%i'))".format(instance_name, event_id, s_id, i_id, start_time, end_time))
+  con.commit()
+  cur.close()
 
 def mailTrigger(receiver, body):
   port = 587

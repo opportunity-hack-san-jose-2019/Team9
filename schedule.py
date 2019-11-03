@@ -97,7 +97,7 @@ def scheduleInterviewes(start_time, end_time, interval=20, event_id=1, k=2):
     match.append((student_id, neighbours))
 
   # PART 2
-
+  print ("Starting part 2")
   result = []
   this_round = []
   for slot_id in range(len(slots)):
@@ -114,4 +114,5 @@ def scheduleInterviewes(start_time, end_time, interval=20, event_id=1, k=2):
                 slots[slot_id], interval)])
               ele[1].remove(interviewer_id)
 
-  # putMatch(result,event_id)
+  print ("Put Matches", result, event_id)
+  return result,event_id
