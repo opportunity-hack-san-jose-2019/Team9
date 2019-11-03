@@ -6,12 +6,18 @@ from dal import *
 import re
 from schedule import *
 import csv
+import io
 
 # setting up configurations and constants
 config = configparser.ConfigParser()
 config.read('config.ini')
 
 application = Flask(__name__)
+print ("here")
+UPLOAD_FOLDER = ''
+ALLOWED_EXTENSIONS = {'txt', 'csv', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+application.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 rds_host = config['RDS']['RDSHost']
 rds_name = config['RDS']['RDSName']
@@ -22,8 +28,8 @@ instance_name = config['RDS']['InstanceName']
 application.secret_key = "6t813eiyrgqhdjksancbgtqerdhiuoaslknc"
 
 def getConnection():
-  con = pymysql.connect(rds_host, user=rds_name, passwd=rds_password, db=db_name, connect_timeout=5)
-  return con
+	con = pymysql.connect(rds_host, user=rds_name, passwd=rds_password, db=db_name, connect_timeout=5)
+	return con
 
 def isAdmin():
 	if session:
@@ -124,7 +130,7 @@ def viewstudents():
 		try:
 			# con = getConnection()
 			# cursor = con.cursor()
-			query = "SELECT * from team9.PERSON WHERE P_TYPE = 1"
+			query = "SELECT * from team9.STUDENT"
 			# result = cursor.execute("SELECT * from team9.STUDENT;")
 			result = getQueryResult(query)
 			print ("Result:", result)
@@ -242,34 +248,153 @@ def newevent():
 		con.commit()
 		cur.close()
 
-		print ("Sending emails")
-		students = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=1".format(instance_name))
-		for student_email in students:
-			print ("Sending email to ", student_email[0])
-			mailTrigger(student_email[0], "SUBJECT: New Event Created \n \n\n Hello student, {} has been created for {}, starting at {} and ending at {}"
-			.format(name, date, start_time, end_time))
+		# print ("Sending emails")
+		# students = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=1".format(instance_name))
+		# for student_email in students:
+		# 	print ("Sending email to ", student_email[0])
+		# 	mailTrigger(student_email[0], "SUBJECT: New Event Created \n \n\n Hello student, {} has been created for {}, starting at {} and ending at {}"
+		# 	.format(name, date, start_time, end_time))
+		#
+		# interviewers = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=2".format(instance_name))
+		# for interviewer_email in interviewers:
+		# 	mailTrigger(interviewer_email[0], "SUBJECT: New Event Created \n \n\n Hello interviewer, {} has been created for {}, starting at {} and ending at {}"
+		# 		.format(name, date, start_time, end_time))
 
-		interviewers = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=2".format(instance_name))
-		for interviewer_email in interviewers:
-			mailTrigger(interviewer_email[0], "SUBJECT: New Event Created \n \n\n Hello interviewer, {} has been created for {}, starting at {} and ending at {}"
-				.format(name, date, start_time, end_time))
 
-
-		# # uploading csv
+		# uploading csv
 		# if 'attachment_1' in request.files:
+		# 	print ("attachment provided")
 		# 	csvfile = request.files['attachment_1']
 		# 	reader = csv.DictReader(csvfile)
 		# 	data = [row for row in reader]
-		# 	for row in data:
-		# 		date_time_store = row['date_time']
-		# 	technician_store = row['technician']
-		# 	test_location_store = row['test_location']
-		# 	product_serial_number_store = row['product_serial_number']
-		# 	test_detail_store = row['test_detail']
-		# 	test_result_store = row['test_result']
+		#   for row in data:
 
+		f = request.files['attachment_1']
+		if not f:
+			pass
+		else:
+			print ("File passed")
+			stream = io.StringIO(f.stream.read().decode("UTF8"), newline=None)
+			csv_input = csv.reader(stream)
+			print(csv_input)
+			next(csv_input)
+			for row in csv_input:
+				s_id = row[0]
+				fname = row[1]
+				lname = row[2]
+				class_schedule = row[3]
+				phone = row[4]
+				email = row[5]
+				career_interests = row[6]
+				attendance = row[7]
+				project = row[9]
+				grade = row[8]
+				con = getConnection()
+				cur = con.cursor()
+				query = "SELECT * FROM {}.PERSON WHERE P_ID = '{}'".format(instance_name, s_id)
+				cur.execute(query)
+				account = cur.fetchone()
+				cur.close()
+				# If account exists show error and validation checks
+				if account:
+					con = getConnection()
+					cur=con.cursor()
+					cur.execute("UPDATE {}.PERSON SET P_FNAME = '{}', P_LNAME = '{}', P_EMAIL = '{}', P_PHONE= '{}' WHERE P_ID = {}".format(instance_name, fname, lname, lname, email, phone, s_id))
+					con.commit()
+					cur.close()
+					cur=con.cursor()
+					cur.execute("UPDATE {}.STUDENT SET S_ATTENDANCE={}, S_PROJECT={}, S_GRADE={}, S_CLASS='{}' WHERE S_ID = {}".format(instance_name, attendance, project, grade, class_schedule, s_id))
+					con.commit()
+					cur.close()
+				else:
+					dummy_password = 'e2fc714c4727ee9395f324cd2e7f331f'
+					con = getConnection()
+					cur=con.cursor()
+					cur.execute("INSERT INTO {}.PERSON VALUES ({}, '{}', '{}', 1, '{}', '{}', '{}')".format(instance_name, s_id, fname, lname, email, phone, dummy_password))
+					con.commit()
+					cur.close()
+					cur=con.cursor()
+					cur.execute("INSERT INTO {}.STUDENT VALUES ({}, {}, {}, {}, '{}')".format(instance_name, s_id, attendance, project, grade, class_schedule))
+					con.commit()
+					cur.close()
+				interests = career_interests.strip().split(";")
+				con = getConnection()
+				cur=con.cursor()
+				cur.execute("DELETE FROM {}.INT_MAPPING WHERE P_ID = {}".format(instance_name, s_id))
+				con.commit()
+				cur.close()
+				for interest in interests:
+					interest = getInterestNumber(interest)
+					con = getConnection()
+					cur=con.cursor()
+					cur.execute("INSERT INTO {}.INT_MAPPING VALUES ({}, {})".format(instance_name, s_id, interest))
+					con.commit()
+					cur.close()
 
-
+		f = request.files['attachment_2']
+		if not f:
+			pass
+		else:
+			print ("Mentor file passed")
+			stream = io.StringIO(f.stream.read().decode("UTF8"), newline=None)
+			csv_input = csv.reader(stream)
+			print(csv_input)
+			next(csv_input)
+			for row in csv_input:
+				i_id = row[0]
+				fname = row[1]
+				lname = row[2]
+				email = row[3]
+				phone = row[4]
+				vip = row[5]
+				role = row[6]
+				career_interests = row[7]
+				attendance = row[7]
+				class_schedule = row[8]
+				con = getConnection()
+				cur = con.cursor()
+				query = "SELECT * FROM {}.PERSON WHERE P_ID = '{}'".format(instance_name, i_id)
+				cur.execute(query)
+				account = cur.fetchone()
+				cur.close()
+				# If account exists show error and validation checks
+				if account:
+					print ("In if account")
+					con = getConnection()
+					cur=con.cursor()
+					cur.execute("UPDATE {}.PERSON SET P_FNAME = '{}', P_LNAME = '{}', P_EMAIL = '{}', P_PHONE= '{}' WHERE P_ID = {}".format(instance_name, fname, lname, email, phone, i_id))
+					con.commit()
+					cur.close()
+					cur=con.cursor()
+					cur.execute("UPDATE {}.INTERVIEWER SET VIP={}, CLASS='{}', ROLE='{}' WHERE I_ID = {}".format(instance_name, getVIPStatus(vip), class_schedule, role, i_id))
+					con.commit()
+					cur.close()
+				else:
+					print ("In else")
+					dummy_password = 'e2fc714c4727ee9395f324cd2e7f331f'
+					con = getConnection()
+					cur=con.cursor()
+					cur.execute("INSERT INTO {}.PERSON VALUES ({}, '{}', '{}', 2, '{}', '{}', '{}')".format(instance_name, i_id, fname, lname, email, phone, dummy_password))
+					con.commit()
+					cur.close()
+					cur=con.cursor()
+					cur.execute("INSERT INTO {}.INTERVIEWER VALUES ({}, {}, {}, '{}', '{}')".format(instance_name, i_id, 0, getVIPStatus(vip), class_schedule, role))
+					con.commit()
+					cur.close()
+				interests = career_interests.strip().split(";")
+				print ("Adding interests")
+				con = getConnection()
+				cur=con.cursor()
+				cur.execute("DELETE FROM {}.INT_MAPPING WHERE P_ID = {}".format(instance_name, i_id))
+				con.commit()
+				cur.close()
+				for interest in interests:
+					interest = getInterestNumber(interest)
+					con = getConnection()
+					cur=con.cursor()
+					cur.execute("INSERT INTO {}.INT_MAPPING VALUES ({}, {})".format(instance_name, i_id, interest))
+					con.commit()
+					cur.close()
 
 		return "Event Added"
 
@@ -343,45 +468,10 @@ def getMatches():
 		for match in matches:
 			settMatch(match[0], match[1], match[2], match[3], eventID)
 
-
 	return "Matches done"
 
-
-
-
-
-# @upload_csv_blueprint.route('/upload_csv', methods=['GET','POST'])
-# def upload_file():
-# 	if request.method == 'POST':
-# 		csvfile = request.files['file']
-# 		reader = csv.DictReader(csvfile)
-# 		data = [row for row in reader]
-# 		for row in data:
-# 			date_time_store = row['date_time']
-# 			technician_store = row['technician']
-# 			test_location_store = row['test_location']
-# 			product_serial_number_store = row['product_serial_number']
-# 			test_detail_store = row['test_detail']
-# 			test_result_store = row['test_result']
-#
-# 			query = test_result(date_time = date_time_store,
-# 				technician_name = technician_store,
-# 				place_of_test = test_location_store,
-# 				serial_number=product_serial_number_store,
-# 				test_details=test_detail_store,
-# 				result=test_result_store)
-#
-# 			db.session.add(query)
-# 			db.session.commit()
-# 			return('Did it work?')
-# 		else:
-# 			return redirect(url_for('upload_csv.upload_csv_layout'))
-
 if __name__ == "__main__":
-	application.run()
-
-
-
+	application.run(threaded=True)
 
 
 # aseem

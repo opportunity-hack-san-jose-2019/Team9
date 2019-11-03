@@ -1,7 +1,7 @@
 {% extends 'layout.html' %} {% block title %}Home{% endblock %} {% block content %}
 <h2>Home Page</h2>
 <h1> New Event </h1>
-<form action="{{ url_for('newevent') }}" method="post" autocomplete="off">
+<form action="{{ url_for('newevent') }}" method="post" autocomplete="off"  enctype=multipart/form-data>
   <p>
     Event ID:
     <input   type = "text" id = 'eventId' name = "eventId">
@@ -21,10 +21,10 @@
   <input type = "time" id = 'endTime' name = "endTime" text = null>
   </p>
   Select a CSV containing student details:
-  <input type = "file" id='attachment_1' name = "attachment_1" text = null>
+  <input type = "file" id='attachment_1' name = "attachment_1">
   </p>
   Select a CSV containing interviewer details:
-  <input type = "file" id='attachment_2' name = "attachment_2" text = null>
+  <input type = "file" id='attachment_2' name = "attachment_2">
   </p>
   ​
   <input type="submit" value="Register">

@@ -82,6 +82,27 @@ def settMatch(i_id, s_id, start_time, end_time, event_id):
   con.commit()
   cur.close()
 
+
+def getInterestNumber(interest):
+  try:
+    I_ID = getQueryResult("SELECT I_ID FROM {}.INTERESTS WHERE I_NAME = '{}'".format(instance_name, interest), fetchOne=True)[0]
+    return I_ID + 1
+  except TypeError:
+    I_ID = getQueryResult('SELECT MAX(I_ID) from {}.INTERESTS'.format(instance_name), fetchOne=True)[0]
+    con = getConnection()
+    cur=con.cursor()
+    cur.execute("INSERT INTO {}.INTERESTS VALUES ({}, '{}')".format(instance_name, I_ID + 1, interest))
+    con.commit()
+    cur.close()
+    return I_ID + 1
+
+
+def getVIPStatus(s):
+  if s == "True":
+    return 1
+  else:
+    return 0
+
 def mailTrigger(receiver, body):
   port = 587
   smtp_server = "smtp.gmail.com"
@@ -101,7 +122,8 @@ print(getPeopleFromEvent(1))
 print("Person Type: ", getPersonType(1))
 print("Person Name: ", getPersonName(1))
 print(getInterestsList())
-a = getQueryResult('SELECT MAX(P_ID) from {}.PERSON'.format(instance_name), fetchOne=True)
+a = getQueryResult('SELECT MAX(P_ID) from {}.PERSON WHERE P_TYPE = 11'.format(instance_name), fetchOne=True)
+print ("A", a[0])
 students = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=1".format(instance_name))
 for student_email in students:
   print (student_email[0])
