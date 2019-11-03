@@ -7,6 +7,7 @@ import re
 from schedule import scheduleInterviewes
 import csv
 import io
+from text_messages import  send_text
 
 # setting up configurations and constants
 config = configparser.ConfigParser()
@@ -75,7 +76,7 @@ def login():
 			# Redirect to home page
 			print ("Person Type: ", getPersonType(session['id']))
 			if getPersonType(session['id']) == 0:
-				return redirect(url_for('/pythonlogin/home_admin'))
+				return redirect(url_for('newevent'))
 			elif getPersonType(session['id']) == 1:
 				return redirect(url_for('home_student'))
 			elif getPersonType(session['id']) == 2:
@@ -271,6 +272,7 @@ def newevent():
 			if student_email[1]:
 				print ("Sending email to ", student_email[0])
 				rsvp_link = "http://localhost:5000/rsvp/yes/" + str(student_email[2]) + "-" + str(eID)
+				send_text(rsvp_link, start_time=start_time, end_time=end_time, name=name)
 				mailTrigger(student_email[0], "SUBJECT: New Event Created \n \n\n Hello student, {} has been created for {}, starting at {} and ending at {}. RSVP Yes here: {}"
 				.format(name, date, start_time, end_time, rsvp_link))
 
@@ -420,6 +422,22 @@ def newevent():
 
 	return render_template('newevent.html')
 
+@application.route('/updateevent', methods=['GET', 'POST'])
+def updateevent():
+	if request.method == 'POST':
+		result = getQueryResult("SELECT E_ID FROM {}.EVENT".format(instance_name))
+		for item in result:
+			if 'selectedStudent_{}'.format(item[0]) in request.form:
+				query = 'DELETE FROM {}.EVENT WHERE E_ID = {}'.format(instance_name,item[0])
+				query1 = 'DELETE FROM {}.MATCHES WHERE E_ID = {}'.format(instance_name, item[0])
+				query2 = 'DELETE FROM {}.RSVP WHERE E_ID = {}'.format(instance_name,item[0])
+				con = getConnection()
+				cur=con.cursor()
+				cur.execute(query)
+				cur.execute(query1)
+				cur.execute(query2)
+				con.commit()
+	return redirect(url_for('updateevent'))
 
 @application.route('/updateinterviewer', methods=['GET', 'POST'])
 def updateinterviewer():
@@ -436,6 +454,39 @@ def updateinterviewer():
 				cur.execute(query)
 				con.commit()
 	return redirect(url_for('viewinterviewers'))
+
+@application.route("/viewevents", methods=['GET'])
+def viewevents():
+	if isAdmin():
+		try:
+			# con = getConnection()
+			# cursor = con.cursor()
+			query = "SELECT E_ID, E_NAME, E_DATE, E_START, E_END from team9.EVENT"
+			# result = cursor.execute("SELECT * from team9.STUDENT DESC;")
+			print("HERE")
+			results = getQueryResult(query, fetchTop=15)
+			print ("Result:", results)
+			all_events = list()
+			if results:
+				for result in results:
+					new_student = {
+						'E_ID': result[0],
+						'E_NAME': result[1],
+						'E_DATE': result[2],
+						'E_START': result[3],
+						'E_END': result[4]
+					}
+					all_events.append(new_student)
+				print ("Returning JSON")
+				return render_template('viewevents.html', data=all_events)
+			else:
+				return jsonify('No data!'), 404
+		except Exception as err:
+			print(str(err))
+			return (None, 500)
+	else:
+		print ("---------")
+		return jsonify("",401)
 
 @application.route("/viewinterviewers", methods=['GET'])
 def viewinterviewers():

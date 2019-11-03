@@ -1,7 +1,5 @@
 from twilio.rest import Client
 
-
-
 def send_text(url , phone_number = "6692746841",start_time = None ,end_time = None,name = None):
     """
     Send a text message to user with event timings, RSVP url

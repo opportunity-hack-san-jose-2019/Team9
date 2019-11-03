@@ -1,0 +1,27 @@
+{% extends 'layout_admin.html' %} {% block title %}Profile{% endblock %} {% block content %}
+<form action="{{ url_for('updateevent') }}" method="post" autocomplete="off">
+  <table style="width:100%" border="5" background="white">
+    <tr>
+      <th>Delete</th>
+      <th>Event ID</th>
+      <th>Event Name</th>
+      <th>Event Date</th>
+      <th>Event Start Time</th>
+      <th>Event End Time</th>
+    </tr>
+    {% for item in data %}
+    <tr>
+      <td><input type="checkbox" id="{{item}}" name="selectedStudent_{{item.P_ID}}" value="{{item.E_ID}}"></td>
+      <td>{{item.E_ID}}</td>
+      <td><div contenteditable >{{item.E_NAME}}</div></td>
+      <td><div contenteditable>{{item.E_DATE}}</div></td>
+      <td><div contenteditable>{{item.E_START}}</div></td>
+      <td><div contenteditable>{{item.E_END}}</div></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <input type="submit" value="Remove Event">
+  <input type="button" onclick="{{ url_for('updateinterviewer') }}" value="Generate Matches">
+</form>
+{% endblock %}
+
