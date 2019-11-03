@@ -94,6 +94,15 @@ def settMatch(i_id, s_id, start_time, end_time, event_id):
   cur.close()
 
 
+def setRSVPYes(id, event):
+  con = getConnection()
+  cur=con.cursor()
+  cur.execute("INSERT INTO {}.RSVP VALUES ({}, {})".format(instance_name, id, event))
+  con.commit()
+  cur.close()
+
+
+
 def getInterestId(interest):
   try:
     I_ID = getQueryResult("SELECT I_ID FROM {}.INTERESTS WHERE I_NAME = '{}'".format(instance_name, interest), fetchOne=True)[0]

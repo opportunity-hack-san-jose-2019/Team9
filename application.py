@@ -265,17 +265,20 @@ def newevent():
 		con.commit()
 		cur.close()
 
-		# print ("Sending emails")
-		# students = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=1".format(instance_name))
-		# for student_email in students:
-		# 	print ("Sending email to ", student_email[0])
-		# 	mailTrigger(student_email[0], "SUBJECT: New Event Created \n \n\n Hello student, {} has been created for {}, starting at {} and ending at {}"
-		# 	.format(name, date, start_time, end_time))
-		#
-		# interviewers = getQueryResult("SELECT P_EMAIL FROM {}.PERSON WHERE P_TYPE=2".format(instance_name))
-		# for interviewer_email in interviewers:
-		# 	mailTrigger(interviewer_email[0], "SUBJECT: New Event Created \n \n\n Hello interviewer, {} has been created for {}, starting at {} and ending at {}"
-		# 		.format(name, date, start_time, end_time))
+		print ("Sending emails")
+		students = getQueryResult("SELECT P_EMAIL, P_NOTIF, P_ID FROM {}.PERSON WHERE P_TYPE=1".format(instance_name))
+		for student_email in students:
+			if student_email[1]:
+				print ("Sending email to ", student_email[0])
+				rsvp_link = "http://localhost:5000/rsvp/yes/" + str(student_email[2]) + "-" + str(eID)
+				mailTrigger(student_email[0], "SUBJECT: New Event Created \n \n\n Hello student, {} has been created for {}, starting at {} and ending at {}. RSVP Yes here: {}"
+				.format(name, date, start_time, end_time, rsvp_link))
+
+		interviewers = getQueryResult("SELECT P_EMAIL, P_NOTIF FROM {}.PERSON WHERE P_TYPE=2".format(instance_name))
+		for interviewer_email in interviewers:
+			if interviewer_email[1]:
+				mailTrigger(interviewer_email[0], "SUBJECT: New Event Created \n \n\n Hello interviewer, {} has been created for {}, starting at {} and ending at {}"
+					.format(name, date, start_time, end_time))
 
 
 		# uploading csv
@@ -548,6 +551,13 @@ def profile_admin():
 		cur.close()
 		# Show the profile page with account info
 		return render_template('profile_admin.html', account=account)
+
+@application.route('/rsvp/yes/<string:id>')
+def rsvpYes(id):
+	id, event = id.split("-")
+	setRSVPYes(int(id), int(event))
+	return "You marked RSVP Yes for event {}".format(event)
+
 
 if __name__ == "__main__":
 	application.run(debug=True)
