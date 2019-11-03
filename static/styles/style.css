@@ -1,0 +1,87 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.navbarTeam9 {
+  overflow: hidden;
+  background-color: #333;
+  padding: 0px 0px 0px 0px;
+}
+
+.tab {
+  height: 60px;
+}
+
+.navbarTeam9 a {
+  float: right;
+  font-size: 16px;
+  color: white;
+  text-align: center;
+  padding-top: 14px;
+  padding-left: 16px;
+  padding-right: 16px;
+  text-decoration: none;
+}
+
+.dropdownTeam9 {
+  float: left;
+  overflow: hidden;
+  padding: 0px 20px 0px 0px;
+}
+
+.dropdownTeam9 .dropbtn {
+  font-size: 16px;
+  border: none;
+  outline: none;
+  color: white;
+  padding: 14px 16px;
+  background-color: inherit;
+  font-family: inherit;
+  margin-right: 0;
+}
+
+.navbarTeam9 a:hover, .dropdownTeam9:hover .dropbtn {
+  background-color: red;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 0px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.searchbar {
+  margin-top: 10px;
+  margin-left: 20px;
+  margin-bottom: 10px;
+  width: 25%;
+  height: 40px;
+  font-size: 20px;
+  font-margin: 2px;
+  padding: 20px;
+  -webkit-transition: width 0.3s ease-in-out;
+}
+
+.searchbar:focus {
+  width: 60%;
+}
+
+.dropdown-content a {
+  float: none;
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  text-align: left;
+}
+
+.dropdown-content a:hover {
+  background-color: #ddd;
+}
+
+.dropdownTeam9:hover .dropdown-content {
+  display: block;
+}
