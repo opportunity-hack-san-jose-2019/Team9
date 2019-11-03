@@ -1,6 +1,6 @@
-{% extends 'layout.html' %} {% block title %}Profile{% endblock %} {% block content %}
+{% extends 'layout_admin.html' %} {% block title %}Profile{% endblock %} {% block content %}
 <form action="{{ url_for('updateinterviewer') }}" method="post" autocomplete="off">
-  <table style="width:100%" border="5">
+  <table style="width:100%" border="5" background="white">
     <tr>
       <th>Delete</th>
       <th>Interviewer ID</th>

@@ -4,7 +4,7 @@ import pymysql
 import configparser
 from dal import *
 import re
-from schedule import *
+from schedule import scheduleInterviewes
 import csv
 import io
 
@@ -75,9 +75,9 @@ def login():
 			# Redirect to home page
 			print ("Person Type: ", getPersonType(session['id']))
 			if getPersonType(session['id']) == 0:
-				return 'admin_page'
+				return redirect(url_for('/pythonlogin/home_admin'))
 			elif getPersonType(session['id']) == 1:
-				return redirect(url_for('profile'))
+				return redirect(url_for('home_student'))
 			elif getPersonType(session['id']) == 2:
 				return redirect(url_for('profile'))
 			else:
@@ -95,6 +95,17 @@ def login():
 def homes():
 	# return render_template('home.html', data = data, title="CS 218 Image Portal - Home Feed")
 	return render_template('admin.html', title="Braven Admin Page")
+
+@application.route('/home_student')
+def home_student():
+	# Check if user is loggedin
+	print ("Home Student")
+	if isSession():
+		print ("In Session")
+		# User is loggedin show them the home page
+		return render_template('home_student.html', username=getPersonName(session["id"]))
+	# User is not loggedin redirect to login page
+	return redirect(url_for('login'))
 
 @application.route('/logout')
 def logout():
@@ -132,7 +143,7 @@ def viewstudents():
 			# cursor = con.cursor()
 			query = "SELECT * from team9.STUDENT"
 			# result = cursor.execute("SELECT * from team9.STUDENT;")
-			result = getQueryResult(query)
+			result = getQueryResult(query, fetchTop=15)
 			print ("Result:", result)
 			all_students = list()
 			if result:
@@ -174,6 +185,12 @@ def home():
 def profile():
 	# Check if user is loggedin
 	if isSession():
+		if isAdmin():
+			account = list()
+			account.append(session["id"])
+			account.append(getPersonName(session["id"]))
+			account = tuple(account)
+			return render_template('profile_admin.html', account=account)
 		# We need all the account info for the user so we can display it on the profile page
 		query = 'SELECT P_ID, P_EMAIL, P_PHONE FROM {}.PERSON WHERE P_ID = {}'.format(instance_name, session['id'])
 		account = getQueryResult(query, fetchOne=True)
@@ -425,7 +442,7 @@ def viewinterviewers():
 			# cursor = con.cursor()
 			query = "SELECT * from team9.PERSON WHERE P_TYPE = 2"
 			# result = cursor.execute("SELECT * from team9.STUDENT;")
-			result = getQueryResult(query)
+			result = getQueryResult(query, fetchTop=15)
 			print ("Result:", result)
 			all_students = list()
 			if result:
@@ -470,8 +487,70 @@ def getMatches():
 
 	return "Matches done"
 
+@application.route('/pythonlogin/profile_student')
+def profile_student():
+	# Check if user is loggedin
+	if 'loggedin' in session:
+		# We need all the account info for the user so we can display it on the profile page
+		con = getConnection()
+		cur = con.cursor()
+		print(session['id'])
+		cur.execute('SELECT * FROM {}.PERSON WHERE P_ID = {}'.format(instance_name, session['id']))
+		account = cur.fetchone()
+		cur.close()
+		# Show the profile page with account info
+		interests = getUserInterests(session["id"])
+		print ("-------")
+		print (account)
+		account = list(account)
+		print (type(account))
+		for interest in interests:
+			print ("interest", interest)
+			account.append(interest)
+		account = tuple(account)
+		print (account)
+		return render_template('profile_student.html', account=account,data=[{'name':'Data Science'}, {'name':'Machine Learning'}, {'name':'Full-Stack Engineering'},{'name':'Data Engineering'},{'name':'Cloud Architect'},{'name':'Dev-Ops'}])
+
+
+@application.route('/pythonlogin/profile_student',methods = ['POST', 'GET'])
+def submit():
+	if request.method == 'POST':
+		con = getConnection()
+		cur=con.cursor()
+		cur.execute("DELETE FROM {}.INT_MAPPING WHERE P_ID = {}".format(instance_name, session["id"]))
+		cur.execute("INSERT INTO {}.INT_MAPPING VALUES ({}, {})".format(instance_name, session["id"], getInterestId(request.form['interest_1'])))
+		cur.execute("INSERT INTO {}.INT_MAPPING VALUES ({}, {})".format(instance_name, session["id"], getInterestId(request.form['interest_2'])))
+		cur.execute("INSERT INTO {}.INT_MAPPING VALUES ({}, {})".format(instance_name, session["id"], getInterestId(request.form['interest_3'])))
+		con.commit()
+		cur.close()
+		return redirect(url_for('home_student'))
+
+@application.route('/pythonlogin/home_admin')
+def home_admin():
+	# Check if user is loggedin
+	if isSession() and isAdmin():
+		# User is loggedin show them the home page
+		# return render_template('home_admin.html', username=getPersonName(session["id"]))
+		return redirect(url_for('newevent'))
+	# User is not loggedin redirect to login page
+	return redirect(url_for('login'))
+
+@application.route('/pythonlogin/profile_admin')
+def profile_admin():
+	# Check if user is loggedin
+	if isSession() and isAdmin():
+		# We need all the account info for the user so we can display it on the profile page
+		con = getConnection()
+		cur = con.cursor()
+		print(session['id'])
+		cur.execute('SELECT * FROM {}.PERSON WHERE P_ID = {}'.format(instance_name, session['id']))
+		account = cur.fetchone()
+		cur.close()
+		# Show the profile page with account info
+		return render_template('profile_admin.html', account=account)
+
 if __name__ == "__main__":
-	application.run(threaded=True)
+	application.run(debug=True)
 
 
 # aseem
@@ -518,3 +597,83 @@ if __name__ == "__main__":
 # 		return jsonify('Add/Update recipe failed'), 500
 # if __name__ == '__name__':
 # 	app.run(debug=True)
+
+# ajith/pooja
+
+# http://localhost:5000/pythinlogin/home - this will be the home page, only accessible for loggedin users
+
+
+
+
+
+
+
+
+
+# @app.route('/pythonlogin/profile_admin')
+# def profile_admin():
+# 	# Check if user is loggedin
+# 	if 'loggedin' in session:
+# 		# We need all the account info for the user so we can display it on the profile page
+# 		cur = con.cursor()
+# 		print(session['id'])
+# 		cur.execute('SELECT * FROM admin_info WHERE id = %s', (session['id'],))
+# 		account = cur.fetchone()
+# 		cur.close()
+# 		# Show the profile page with account info
+# 		return render_template('profile_admin.html', account=account )
+# ​
+# @app.route('/pythonlogin/profile_student',methods = ['POST', 'GET'])
+# def submit():
+# 	if request.method == 'POST':
+# 		cur=con.cursor()
+# 		interest_1=request.form['interest_1']
+# 		interest_2=request.form['interest_2']
+# 		interest_3=request.form['interest_3']
+# 		cur.execute('UPDATE student_info SET interest_1=%s,interest_2=%s,interest_3=%s WHERE id = %s' ,(interest_1,interest_2,interest_3,session['id']))
+# 		con.commit()
+# 		cur.close()
+# ​
+# # User is not loggedin redirect to login page
+# return redirect(url_for('home_student'))
+# @app.route('/pythonlogin/profile_interviewer')
+# def profile_interviewer():
+# 	# Check if user is loggedin
+# 	if 'loggedin' in session:
+# 		# We need all the account info for the user so we can display it on the profile page
+# 		cur = con.cursor()
+# 		cur.execute('SELECT * FROM interviewer_info WHERE id = %s', (session['id'],))
+# 		account = cur.fetchone()
+# 		cur.close()
+# 		# Show the profile page with account info
+# 		return render_template('profile_interviewer.html', account=account,data=[{'name':'Data Science'}, {'name':'Machine Learning'}, {'name':'Full-Stack Engineering'},{'name':'Data Engineering'},{'name':'Cloud Architect'},{'name':'Dev-Ops'}])
+# @app.route('/pythonlogin/profile_interviewer',methods = ['POST', 'GET'])
+# def submit_interviewer():
+# 	if request.method == 'POST':
+# 		cur=con.cursor()
+# 		interest_1=request.form['interest_1']
+# 		interest_2=request.form['interest_2']
+# 		interest_3=request.form['interest_3']
+# 		cur.execute('UPDATE interviewer_info SET interest_1=%s,interest_2=%s,interest_3=%s WHERE id = %s' ,(interest_1,interest_2,interest_3,session['id']))
+# 		con.commit()
+# 		cur.close()
+# 	return redirect(url_for('home_interviewer'))
+# @app.route('/pythonlogin/jobupdate',methods = ['POST', 'GET'])
+# def submit_job():
+# 	if request.method == 'POST':
+# 		cur=con.cursor()
+# 		organization=request.form['organization']
+# 		job_position=request.form['job_position']
+#
+# 		cur.execute('UPDATE interviewer_info SET organization=%s,job_position=%s WHERE interviewer_id = %s' ,(organization,job_position,session['id']))
+# 		con.commit()
+# 		cur.close()
+# 	return redirect(url_for('home_interviewer'))
+# @app.route('/pythonlogin/home_interviewer')
+# def home_interviewer():
+# 	# Check if user is loggedin
+# 	if 'loggedin' in session:
+# 		# User is loggedin show them the home page
+# 		return render_template('home_interviewer.html', username=session['username'])
+# 	# User is not loggedin redirect to login page
+# 	return redirect(url_for('login'))
