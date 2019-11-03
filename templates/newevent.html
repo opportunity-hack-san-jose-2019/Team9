@@ -1,0 +1,33 @@
+{% extends 'layout.html' %} {% block title %}Home{% endblock %} {% block content %}
+<h2>Home Page</h2>
+<h1> New Event </h1>
+<form action="{{ url_for('newevent') }}" method="post" autocomplete="off">
+  <p>
+    Event ID:
+    <input   type = "text" id = 'eventId' name = "eventId">
+  </p>
+  <p>
+    Event Name:
+    <input type = "text" id = 'eventName' name = "eventName" text = null>
+  </p>
+  <p>
+    Date:
+    <input type = "date" id = 'eventDate' name = "eventDate" text = null>
+  </p>
+  Start Time:
+  <input type = "time" id = 'startTime' name = "startTime" text = null>
+  </p>
+  End Time:
+  <input type = "time" id = 'endTime' name = "endTime" text = null>
+  </p>
+  Select a CSV containing student details:
+  <input type = "file" id='attachment_1' name = "attachment_1" text = null>
+  </p>
+  Select a CSV containing interviewer details:
+  <input type = "file" id='attachment_2' name = "attachment_2" text = null>
+  </p>
+  ​
+  <input type="submit" value="Register">
+</form>
+
+{% endblock %}
